@@ -1,0 +1,5 @@
+[user]
+	email = philmarsh.github@gmail.com
+	name = Phil Marsh
+[core]
+	editor = vim

@@ -1,0 +1,143 @@
+export PATH="$HOME/.local/bin:$PATH"
+
+BLACK='\033[30m'
+RED='\033[31m'
+GREEN='\033[32m'
+YELLOW='\033[33m'
+BLUE='\033[34m'
+MAGENTA='\033[35m'
+CYAN='\033[36m'
+LIGHT_GRAY='\033[37m'
+GRAY='\033[90m' # numerically "light black"
+LIGHT_RED='\033[91m'
+LIGHT_GREEN='\033[92m'
+LIGHT_YELLOW='\033[93m'
+LIGHT_BLUE='\033[94m'
+LIGHT_MAGENTA='\033[95m'
+LIGHT_CYAN='\033[96m'
+WHITE='\033[97m' # numerically "light light gray"
+
+BLACK_BG='\033[40m'
+RED_BG='\033[41m'
+GREEN_BG='\033[42m'
+YELLOW_BG='\033[43m'
+BLUE_BG='\033[44m'
+MAGENTA_BG='\033[45m'
+CYAN_BG='\033[46m'
+LIGHT_GRAY_BG='\033[47m'
+GRAY_BG='\033[100m'
+LIGHT_RED_BG='\033[101m'
+LIGHT_GREEN_BG='\033[102m'
+LIGHT_YELLOW_BG='\033[103m'
+LIGHT_BLUE_BG='\033[104m'
+LIGHT_MAGENTA_BG='\033[105m'
+LIGHT_CYAN_BG='\033[106m'
+WHITE_BG='\033[107m'
+
+PS1='$(_ps1)'
+
+function _ps1() {
+    last_status="$?"
+
+    echo -e "${LIGHT_YELLOW}$(_datetime_local) ${LIGHT_GREEN}$(_datetime_utc) ${LIGHT_CYAN}$(_pwd_relative_to_home) ${LIGHT_MAGENTA}$(_git_info)"
+    echo -e "$(_format_status $last_status) ${LIGHT_GREEN}\$${WHITE} "
+}
+
+function _datetime_local() {
+    date "+%Y-%m-%d %H:%M:%S %Z"
+}
+
+function _datetime_utc() {
+    date "+%Y-%m-%d %H:%M:%S %Z" --utc
+}
+
+function _pwd_relative_to_home() {
+    rel_path="$(realpath . --relative-to ${HOME})"
+    if [[ "${rel_path}" == ..* ]]; then
+        # use abs path if not inside `~`.
+        realpath .
+    elif [[ "${rel_path}" == "." ]]; then
+        echo "~"
+    else
+        echo "~/${rel_path}"
+    fi
+}
+
+function _git_info() {
+    if ! git status >/dev/null 2>/dev/null; then
+        return
+    fi
+
+    branch="$(git rev-parse --abbrev-ref HEAD)"
+    short_hash="$(git rev-parse --short HEAD)"
+    status_flags=""
+
+    # untracked files
+    if [[ ! -z "$(git ls-files --exclude-standard --others)" ]]; then
+        status_flags+="🔻"
+    fi
+    # unstaged files
+    if ! git diff-files --quiet; then
+        status_flags+="🟡"
+    fi
+    # staged files
+    if ! git diff-index --quiet --cached HEAD --; then
+        status_flags+="🟦"
+    fi
+
+    if [[ -z "${status_flags}" ]]; then
+        status_flags="✔ "
+    fi
+
+    echo "${branch}${status_flags} ${short_hash}"
+}
+
+function _format_status() {
+    status="${1}"
+
+    if [[ "${status}" == "0" ]]; then
+        echo "${GREEN}${status}"
+    else
+        echo "${RED}${status}"
+    fi
+}
+
+# old zsh prompt
+# PROMPT='%F{yellow}%D{%Y-%m-%d} %* %F{cyan}%~ %F{magenta}$(git_prompt_info) $(git_prompt_short_sha)'
+# PROMPT+=$'\n''%(?.%F{green}.%F{red})%? %F{green}$ %F{white}'
+# ZSH_THEME_GIT_PROMPT_PREFIX=""
+# ZSH_THEME_GIT_PROMPT_SUFFIX=""
+# ZSH_THEME_GIT_PROMPT_DIRTY="+"
+# ZSH_THEME_GIT_PROMPT_CLEAN=""
+
+alias ll="ls -Al"
+
+alias g="grep -P --color=auto"
+
+alias apt="sudo apt"
+
+export PYENV_ROOT="$HOME/.pyenv"
+export PATH="$PYENV_ROOT/bin:$PATH"
+eval "$(pyenv init -)"
+
+alias python="python3"
+alias py="python3"
+
+alias po="poetry"
+alias por="poetry run"
+alias porp="poetry run python"
+alias port="poetry run pytest"
+
+alias ydiff="ydiff -s -w 100"
+alias ydiffc="ydiff -s -w 100 --cached"
+
+function drop_merged() {
+    target_branch="${1}";
+
+    (
+        set -xeuo pipefail;
+        git rebase main "${target_branch}" -Xours;
+        git checkout main;
+        git branch -d "${target_branch}";
+    )
+}
