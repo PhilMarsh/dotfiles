@@ -74,15 +74,15 @@ function _git_info() {
 
     # untracked files
     if [[ ! -z "$(git ls-files --exclude-standard --others)" ]]; then
-        status_flags+="🔻"
+        status_flags+=" 🔻"
     fi
     # unstaged files
     if ! git diff-files --quiet; then
-        status_flags+="🟡"
+        status_flags+=" 🟡"
     fi
     # staged files
     if ! git diff-index --quiet --cached HEAD --; then
-        status_flags+="🟦"
+        status_flags+=" 🟦"
     fi
 
     if [[ -z "${status_flags}" ]]; then
