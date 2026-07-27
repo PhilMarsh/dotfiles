@@ -1,4 +1,15 @@
 export PATH="$HOME/.local/bin:$PATH"
+export PATH="$HOME/.cargo/bin:$PATH"
+
+BRIGHT='\033[1m'
+DIM='\033[2m'
+UNDERLINED='\033[4m'
+INVERTED='\033[7m'
+
+NOT_BRIGHT='\033[21m'
+NOT_DIM='\033[22m'
+NOT_UNDERLINED='\033[24m'
+NOT_INVERTED='\033[27m'
 
 BLACK='\033[30m'
 RED='\033[31m'
@@ -39,8 +50,9 @@ PS1='$(_ps1)'
 function _ps1() {
     last_status="$?"
 
-    echo -e "${LIGHT_YELLOW}$(_datetime_local) ${LIGHT_GREEN}$(_datetime_utc) ${LIGHT_CYAN}$(_pwd_relative_to_home) ${LIGHT_MAGENTA}$(_git_info)"
-    echo -e "$(_format_status $last_status) ${LIGHT_GREEN}\$${WHITE} "
+    # Don't put colors on the last line because WSL/Ubuntu doesn't manage the cursor correctly.
+    echo -e "$(_format_status $last_status) ${YELLOW}$(_datetime_local) ${LIGHT_GREEN}$(_datetime_utc) ${CYAN}$(_pwd_relative_to_home) ${LIGHT_MAGENTA}$(_repo_info)${LIGHT_GRAY}"
+    echo -e "\$ "
 }
 
 function _datetime_local() {
@@ -63,11 +75,23 @@ function _pwd_relative_to_home() {
     fi
 }
 
-function _git_info() {
-    if ! git status >/dev/null 2>/dev/null; then
-        return
+function _repo_info() {
+    if _is_jj_repo; then
+        _jj_info;
+    elif _is_git_repo; then
+        _git_info;
     fi
+}
 
+function _is_git_repo() {
+    git status >/dev/null 2>/dev/null
+}
+
+function _is_jj_repo() {
+    jj status >/dev/null 2>/dev/null
+}
+
+function _git_info() {
     branch="$(git rev-parse --abbrev-ref HEAD)"
     short_hash="$(git rev-parse --short HEAD)"
     status_flags=""
@@ -90,6 +114,48 @@ function _git_info() {
     fi
 
     echo "${branch}${status_flags} ${short_hash}"
+}
+
+function _jj_info() {
+    info=$(
+        jj show -r "(main-..@)" --color=always --no-patch -T '
+            label(
+                "ps1_info",
+                (
+                    if(
+                        current_working_copy,
+                        "",
+                        " » ",
+                    )
+                    ++ separate(
+                        " ",
+                        if(
+                            immutable,
+                            "💠",
+                            if(
+                                empty,
+                                "⭕",
+                                "🔻",
+                            )
+                        ),
+                        change_id.shortest() ++ ":" ++ commit_id.shortest(4),
+                        truncate_end(
+                            20,
+                            coalesce(
+                                bookmarks,
+                                surround(
+                                    "\"",
+                                    "\"",
+                                    description.first_line(),
+                                ),
+                            ),
+                            "...",
+                        ),
+                    )
+                ),
+            )'
+    );
+    echo "${LIGHT_MAGENTA}jj(${LIGHT_GRAY}${info}${LIGHT_MAGENTA})${LIGHT_GRAY}"
 }
 
 function _format_status() {
@@ -140,4 +206,12 @@ function drop_merged() {
         git checkout main;
         git branch -d "${target_branch}";
     )
+}
+
+
+## JJ
+source <(COMPLETE=bash jj)
+
+function ydiffj() {
+    jj diff --git $@ | ydiff
 }
