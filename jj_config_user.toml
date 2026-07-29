@@ -1,0 +1,13 @@
+#:schema https://docs.jj-vcs.dev/latest/config-schema.json
+
+[user]
+name = "Phil Marsh"
+email = "philmarsh.github@gmail.com"
+
+[ui]
+default-command = "log"
+editor = "vim"
+
+[templates]
+log = "builtin_log_oneline"
+
